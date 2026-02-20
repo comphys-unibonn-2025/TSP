@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from matplotlib.path import Path
+import matplotlib.pyplot as plt
 
 def polar_to_cartesian(r, phi):
     """
@@ -84,8 +85,79 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
     return cost
 
 
-def plot_tsp_route(nodes, route):
-    pass
+def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.array = None, output_path : str = None):
+    """plots the TSP route defined by the order of visiting the nodes
+    
+    :param nodes: array of coordinates of the N nodes
+    :type nodes: np.ndarray (N, d), N: number of nodes, d: dimension
+    
+    :param route: array of node indices representing the order of visiting the nodes
+    :type route: np.ndarray (N,), values in [0, N-1]
+
+    :param traffic_polygon: array of coordinates of the vertices of the polygon representing the traffic area (optional)
+    :type traffic_polygon: np.ndarray (M, d), M: number of vertices, d: dimension
+
+    :param output_path: path to save the plot (optional)
+    :type output_path: str
+    """
+
+    coords = nodes[route]
+
+    plt.figure(figsize=(8, 8))
+
+    # scatter nodes
+    plt.scatter(nodes[:, 0], nodes[:, 1], color='black', label='Nodes', s=50)
+
+    # starting point
+    plt.plot(coords[0, 0], coords[0, 1], 'ro', label='Starting Point')
+
+    # direction vectors
+    dx = coords[1:, 0] - coords[:-1, 0]
+    dy = coords[1:, 1] - coords[:-1, 1]
+
+    plt.quiver(
+        coords[:-1, 0],   # arrow start x
+        coords[:-1, 1],   # arrow start y
+        dx,               # x direction
+        dy,               # y direction
+        angles='xy',
+        scale_units='xy',
+        scale=1,
+        width=0.006,
+        color='blue'
+    )
+
+    # optional: close the tour
+    dx_last = coords[0, 0] - coords[-1, 0]
+    dy_last = coords[0, 1] - coords[-1, 1]
+
+    plt.quiver(
+        coords[-1, 0],
+        coords[-1, 1],
+        dx_last,
+        dy_last,
+        angles='xy',
+        scale_units='xy',
+        scale=1,
+        width=0.006,
+        color='blue',
+        label='TSP Route'
+    )
+
+    if traffic_polygon is not None:
+        traffic_patch = plt.Polygon(traffic_polygon, color='red', alpha=0.3, label='Traffic Area')
+        plt.gca().add_patch(traffic_patch)
+
+    plt.gca().set_aspect('equal')
+    plt.title('TSP Route')
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.legend()
+
+    if output_path is not None:
+        plt.savefig(output_path)
+
+    plt.show()
 
 def simmulated_annealing_tsp():
     pass
