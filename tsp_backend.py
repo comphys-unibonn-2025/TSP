@@ -3,6 +3,13 @@ from scipy.spatial.distance import pdist, squareform
 from matplotlib.path import Path
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({
+    "text.usetex": True,          # Use LaTeX rendering (requires LaTeX installed)
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+    "font.size": 10              # Set all text to 10 pt
+})
+
 def polar_to_cartesian(r, phi):
     """
     converts polar coordinates (r, phi) to cartesian coordinates (x, y)
@@ -92,7 +99,16 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
     return cost
 
 
-def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.array = None, output_path : str = None, cost : float = None):
+def plot_tsp_route(nodes : np.array, 
+                   route : np.array, 
+                   traffic_polygon : np.array = None, 
+                   output_path : str = None, 
+                   cost : float = None,
+                   arrow_width = 0.006,
+                   arrow_color = 'lightblue',
+                   node_dot_size = 50,
+                   node_color='black',
+                   want_axis=True):
     """plots the TSP route defined by the order of visiting the nodes
     
     :param nodes: array of coordinates of the N nodes
@@ -110,13 +126,13 @@ def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.arra
 
     coords = nodes[route]
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(3.4, 4))
 
     # scatter nodes
-    plt.scatter(nodes[:, 0], nodes[:, 1], color='black', label='Nodes', s=50)
+    plt.scatter(nodes[:, 0], nodes[:, 1], color=node_color, label='Nodes',zorder = 1, s=node_dot_size)
 
     # starting point
-    plt.plot(coords[0, 0], coords[0, 1], 'ro', label='Starting Point')
+    plt.scatter(coords[0, 0], coords[0, 1], color='red', label='Starting Point', zorder = 2, s=node_dot_size)
 
     # direction vectors
     dx = coords[1:, 0] - coords[:-1, 0]
@@ -130,8 +146,8 @@ def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.arra
         angles='xy',
         scale_units='xy',
         scale=1,
-        width=0.006,
-        color='blue'
+        width=arrow_width,
+        color=arrow_color
     )
 
     # optional: close the tour
@@ -146,8 +162,8 @@ def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.arra
         angles='xy',
         scale_units='xy',
         scale=1,
-        width=0.006,
-        color='blue',
+        width=arrow_width,
+        color=arrow_color,
         label='TSP Route'
     )
 
@@ -161,12 +177,17 @@ def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.arra
     if not cost is None:
         plt.title(f"TSP Route, Cost: {cost:.2f}")
 
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.legend()
+    if want_axis:
+        plt.xlabel('X Coordinate')
+        plt.ylabel('Y Coordinate')
+    else:
+        plt.axis(False)
+
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+    plt.tight_layout()
 
     if output_path is not None:
-        plt.savefig(output_path)
+        plt.savefig(output_path, bbox_inches='tight')
 
     plt.show()
 
@@ -249,9 +270,9 @@ def simmulated_annealing_tsp(
 
         temp_change_points.append(num_iter)
 
-        print(f"Temperature: {temp}, Current Cost: {current_cost}")
-        print(f"Current route: {current_route}")
-        print(f"num consec rejections: {num_consec_rejections}, num iter: {num_iter}")
+        # print(f"Temperature: {temp}, Current Cost: {current_cost}")
+        # print(f"Current route: {current_route}")
+        # print(f"num consec rejections: {num_consec_rejections}, num iter: {num_iter}")
 
         num_consec_rejections = 0
 
@@ -295,22 +316,25 @@ def simmulated_annealing_tsp(
                 num_iter += 1
     
     if plot_cost:
-        plt.figure(figsize=(12,12))
-        plt.title(f"TSP cost evolution during simulated annealing, final cost: {costs[-1]:.2f}")
+        plt.figure(figsize=(3.4,5))
+        plt.title(f"TSP cost evolution, \nfinal cost: {costs[-1]:.2f}")
         for (i, temp_change_points) in enumerate(temp_change_points):
-            plt.plot([temp_change_points, temp_change_points], [0, max(costs)], alpha = 0.4, color='grey') #, label=rf'{temperature[i]} $$\unit{{\kelvin}}$$')
+            plt.plot([temp_change_points, temp_change_points], [min(costs) - 0.5, max(costs)], alpha = 0.4, color='grey') #, label=rf'{temperature[i]} $$\unit{{\kelvin}}$$')
         plt.plot(costs, color='black', label='TSP Length')
         # plt.xlim(0.99*len(length_arr), len(length_arr))
         # plt.ylim(6, 13)
         #plt.xscale("log")
         plt.xlabel('Iteration')
         plt.ylabel('TSP Length')
-        plt.legend()
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+        plt.tight_layout()
+
         if not plot_cost_out_path is None:
             plt.savefig(plot_cost_out_path)
         plt.show()
 
-    return current_route
+    return current_route, costs[-1]
 
 def nearest_neighbor_tsp(nodes, start_point_index = None):
     pass
