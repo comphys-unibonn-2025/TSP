@@ -358,25 +358,36 @@ def simmulated_annealing_tsp(
     return current_route
 
 def nearest_neighbor_tsp(
-        nodes : np.array, 
-        traffic_polygon : np.array = None,
-        traffic_factor : float = 1,
-        traffic_start_time : float = 0,
-        temperatures : list = [0.1, 0.05, 0.01, 0.001], 
-        start_point_index = None, 
-        rejection_threshold : list = [20, 200, 2000, 10000], 
-        max_iter_per_temperature : int = 100000,
-        plot_cost : bool = False,
-        plot_cost_out_path : str = None) -> np.array:
+        nodes : np.array,
+        start_point_index = None) -> np.array:
     
     N = len(nodes)
     distances = make_distance_matrix(nodes)
-
-    # determine which nodes are affected by traffic
-    if traffic_polygon is not None:
-        nodes_in_traffic = np.array([i for i in range(N) if check_if_in_polygon(nodes[i], traffic_polygon)])
-    else:
-        nodes_in_traffic = np.array([], dtype=int)
     
     if start_point_index is None:
         start_point_index = np.random.choice(N)
+    
+    unvisited_nodes = np.arange(N)
+    unvisited_nodes = np.delete(unvisited_nodes, start_point_index)
+    route = np.array([start_point_index], dtype=int)
+
+    for i in range(1, N):
+
+        # find node with smallest distance to last visited node
+        minimal_distance = distances[route[-1]][unvisited_nodes[0]]
+        next_node = unvisited_nodes[0]
+
+        for k, unvisited_node in zip(range(1, len(unvisited_nodes)), unvisited_nodes[1:]):
+
+            distance = distances[route[-1]][unvisited_nodes[0]]
+            if distance < minimal_distance:
+                minimal_distance = distance
+                next_node = k
+        
+        # append next node to route and mark as visited
+        route = np.append(route, next_node)
+        unvisited_nodes = np.setdiff1d(unvisited_nodes, [next_node]) # gives the difference of the two given arrays
+    
+    return route
+
+
