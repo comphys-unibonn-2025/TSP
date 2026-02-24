@@ -48,7 +48,7 @@ def check_if_in_polygon(point : np.ndarray, polygon : np.ndarray) -> bool:
     path = Path(polygon)
     return path.contains_point(point)
 
-def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : np.array, distance_matrix : np.array, traffic_factor : float = 1, traffic_start_time : float = 0) -> float:
+def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : np.array, distance_matrix : np.array, traffic_factor_func : callable, traffic_start_time : float) -> float:
     """
     calculates the cost of a given route, with a given distance/cost matrix and traffic factor (which can be time-dependent)
     
@@ -64,30 +64,45 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
     :param distance_matrix: matrix of distances/costs between the nodes
     :type distance_matrix: np.ndarray (N, N)
 
-    :param traffic_factor: factor by which the cost of traveling between nodes is multiplied during traffic time
-    :type traffic_factor: float >= 1 (1 means no traffic, >1 means traffic)
+    :param traffic_factor_func: function that returns the traffic factor at a given time (time is in the same units as the cost of traveling between nodes)
+    :type traffic_factor_func: callable
 
     :param traffic_start_time: time at which traffic starts (in the same time units as the cost of traveling between nodes)
     :type traffic_start_time: float >= 0
     """
 
-    cost = 0
-    current_traffic_factor = 1
-    previous_stop_in_traffic = False
+    N = len(nodes)
+    if route.shape != (N,):
+        raise Exception('The route needs to be an array of shape (N,), where N is the number of nodes')
+
+    route_shifted = np.roll(route, -1) # shift route to the left by 1, so that route_shifted[i] is the next node after route[i]
+    distance_cumsum = np.cumsum([distance_matrix[route, route_shifted]]) # cumulative distance at each step of the route
+
+    traffic_area_mask = np.zeros(N, dtype=bool)
+    traffic_area_mask[nodes_in_traffic] = True
+    traffic_area_mask_matrix = np.outer(traffic_area_mask, traffic_area_mask) # matrix where entry (i, j) is True if both node i and node j are in traffic area
+
+    # compute from which step on there is traffic costwise
+    steps_in_traffic = np.heaviside(distance_cumsum - traffic_start_time, 1)
+    num_steps_in_traffic = np.sum(steps_in_traffic)
+    first_step_in_traffic = N - num_steps_in_traffic
+
+    # compute additive term for if the salesman is in the traffic area, while the traffic starts
+    if 0 < first_step_in_traffic < N and traffic_area_mask_matrix[route[first_step_in_traffic], route[first_step_in_traffic - 1]]:
+        traffic_start_term = (distance_cumsum[first_step_in_traffic] - traffic_start_time) * (traffic_factor_func(distance_cumsum[first_step_in_traffic]) - 1) # additional cost for edge between last node before traffic and first node in traffic costwise
+    else:
+        traffic_start_term = 0.0
+
+    # compute cost sum
+    cost = 0.0
     for i in range(len(route) - 1):
 
-        if cost >= traffic_start_time:
-            current_traffic_factor = traffic_factor
+        if i == first_step_in_traffic:
+            cost += traffic_start_term
 
-            if not previous_stop_in_traffic and (route[i] in nodes_in_traffic or route[i+1] in nodes_in_traffic):
-                current_traffic_factor = current_traffic_factor * (cost - traffic_start_time) / distance_matrix[route[i], route[i+1]]
-            
-            previous_stop_in_traffic = True
-
-
-        cost += distance_matrix[route[i], route[i+1]] * (current_traffic_factor if (i in nodes_in_traffic and (i+1) in nodes_in_traffic) else 1)
+        cost += distance_matrix[route[i], route[i+1]] * (traffic_factor_func(cost) if (traffic_area_mask_matrix[route[i], route[i+1]]) else 1)
     
-    cost += distance_matrix[route[-1], route[0]] * (current_traffic_factor if (route[-1] in nodes_in_traffic and route[0] in nodes_in_traffic) else 1) # return to starting point
+    cost += distance_matrix[route[-1], route[0]] * (traffic_factor_func(cost) if (traffic_area_mask_matrix[route[-1], route[0]]) else 1) # return to starting point
 
     return cost
 
@@ -312,5 +327,26 @@ def simmulated_annealing_tsp(
 
     return current_route
 
-def nearest_neighbor_tsp(nodes, start_point_index = None):
-    pass
+def nearest_neighbor_tsp(
+        nodes : np.array, 
+        traffic_polygon : np.array = None,
+        traffic_factor : float = 1,
+        traffic_start_time : float = 0,
+        temperatures : list = [0.1, 0.05, 0.01, 0.001], 
+        start_point_index = None, 
+        rejection_threshold : list = [20, 200, 2000, 10000], 
+        max_iter_per_temperature : int = 100000,
+        plot_cost : bool = False,
+        plot_cost_out_path : str = None) -> np.array:
+    
+    N = len(nodes)
+    distances = make_distance_matrix(nodes)
+
+    # determine which nodes are affected by traffic
+    if traffic_polygon is not None:
+        nodes_in_traffic = np.array([i for i in range(N) if check_if_in_polygon(nodes[i], traffic_polygon)])
+    else:
+        nodes_in_traffic = np.array([])
+    
+    if start_point_index is None:
+        start_point_index = np.random.choice(N)
