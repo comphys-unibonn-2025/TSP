@@ -92,7 +92,7 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
     return cost
 
 
-def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.array = None, output_path : str = None):
+def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.array = None, output_path : str = None, cost : float = None):
     """plots the TSP route defined by the order of visiting the nodes
     
     :param nodes: array of coordinates of the N nodes
@@ -156,7 +156,11 @@ def plot_tsp_route(nodes : np.array, route : np.array, traffic_polygon : np.arra
         plt.gca().add_patch(traffic_patch)
 
     plt.gca().set_aspect('equal')
+
     plt.title('TSP Route')
+    if not cost is None:
+        plt.title(f"TSP Route, Cost: {cost:.2f}")
+
     plt.xlabel('X Coordinate')
     plt.ylabel('Y Coordinate')
     plt.legend()
@@ -292,13 +296,13 @@ def simmulated_annealing_tsp(
     
     if plot_cost:
         plt.figure(figsize=(12,12))
-        plt.title(f"TSP cost evolution during simulated annealing")
-        for (i, temp) in enumerate(temperatures):
-            plt.plot([temp, temp], [0, max(costs)], alpha = 0.4, color='grey') #, label=rf'{temperature[i]} $$\unit{{\kelvin}}$$')
+        plt.title(f"TSP cost evolution during simulated annealing, final cost: {costs[-1]:.2f}")
+        for (i, temp_change_points) in enumerate(temp_change_points):
+            plt.plot([temp_change_points, temp_change_points], [0, max(costs)], alpha = 0.4, color='grey') #, label=rf'{temperature[i]} $$\unit{{\kelvin}}$$')
         plt.plot(costs, color='black', label='TSP Length')
         # plt.xlim(0.99*len(length_arr), len(length_arr))
         # plt.ylim(6, 13)
-        plt.xscale("log")
+        #plt.xscale("log")
         plt.xlabel('Iteration')
         plt.ylabel('TSP Length')
         plt.legend()
