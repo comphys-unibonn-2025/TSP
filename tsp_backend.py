@@ -55,6 +55,12 @@ def check_if_in_polygon(point : np.ndarray, polygon : np.ndarray) -> bool:
     path = Path(polygon)
     return path.contains_point(point)
 
+def constant_traffic_factor_func(traffic_factor : float, traffic_start_time : float, current_cost : float) -> float:
+    """
+    returns traffic_factor, if current_cost >= traffic_start_time and 1  if not
+    """
+    return traffic_factor if current_cost >= traffic_factor else 1.0
+
 def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : np.array, distance_matrix : np.array, traffic_factor_func : callable, traffic_start_time : float) -> float:
     """
     calculates the cost of a given route, with a given distance/cost matrix and traffic factor (which can be time-dependent)
@@ -92,7 +98,7 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
     # compute from which step on there is traffic costwise
     steps_in_traffic = np.heaviside(distance_cumsum - traffic_start_time, 1)
     num_steps_in_traffic = np.sum(steps_in_traffic)
-    first_step_in_traffic = N - num_steps_in_traffic
+    first_step_in_traffic = int(N - num_steps_in_traffic)
 
     # compute additive term for if the salesman is in the traffic area, while the traffic starts
     if 0 < first_step_in_traffic < N and traffic_area_mask_matrix[route[first_step_in_traffic], route[first_step_in_traffic - 1]]:
@@ -208,8 +214,8 @@ def plot_tsp_route(nodes : np.array,
 
 def simmulated_annealing_tsp(
         nodes : np.array, 
+        traffic_factor : callable,
         traffic_polygon : np.array = None,
-        traffic_factor : float = 1,
         traffic_start_time : float = 0,
         temperatures : list = [0.1, 0.05, 0.01, 0.001], 
         start_point_index = None, 
@@ -261,7 +267,7 @@ def simmulated_annealing_tsp(
     if traffic_polygon is not None:
         nodes_in_traffic = np.array([i for i in range(N) if check_if_in_polygon(nodes[i], traffic_polygon)])
     else:
-        nodes_in_traffic = np.array([])
+        nodes_in_traffic = np.array([], dtype=int)
 
     # randomly generate starting permutation and place starting_point_index in the front (w/o duplicates)
     if start_point_index is None:
@@ -270,11 +276,11 @@ def simmulated_annealing_tsp(
         starting_permutation = np.concatenate((np.array([start_point_index]), np.random.permutation(np.arange(N)[np.arange(N) != start_point_index])))
         
     # step 1
-    current_route = starting_permutation
+    current_route = np.array(starting_permutation, dtype=int)
     current_cost = calculate_route_cost(nodes, current_route, nodes_in_traffic, distances, traffic_factor, traffic_start_time)
     costs = [current_cost]
 
-    trial_route = np.zeros((N, 2))
+    trial_route = np.zeros((N, 2), dtype=int)
     trial_cost = 0.0
 
     num_consec_rejections = 0
@@ -285,9 +291,9 @@ def simmulated_annealing_tsp(
 
         temp_change_points.append(num_iter)
 
-        # print(f"Temperature: {temp}, Current Cost: {current_cost}")
-        # print(f"Current route: {current_route}")
-        # print(f"num consec rejections: {num_consec_rejections}, num iter: {num_iter}")
+        print(f"Temperature: {temp}, Current Cost: {current_cost}")
+        print(f"Current route: {current_route}")
+        print(f"num consec rejections: {num_consec_rejections}, num iter: {num_iter}")
 
         num_consec_rejections = 0
 
@@ -349,7 +355,7 @@ def simmulated_annealing_tsp(
             plt.savefig(plot_cost_out_path)
         plt.show()
 
-    return current_route, costs[-1]
+    return current_route
 
 def nearest_neighbor_tsp(
         nodes : np.array, 
@@ -370,7 +376,7 @@ def nearest_neighbor_tsp(
     if traffic_polygon is not None:
         nodes_in_traffic = np.array([i for i in range(N) if check_if_in_polygon(nodes[i], traffic_polygon)])
     else:
-        nodes_in_traffic = np.array([])
+        nodes_in_traffic = np.array([], dtype=int)
     
     if start_point_index is None:
         start_point_index = np.random.choice(N)
