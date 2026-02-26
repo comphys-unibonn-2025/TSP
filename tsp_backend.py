@@ -355,7 +355,7 @@ def simmulated_annealing_tsp(
             plt.savefig(plot_cost_out_path)
         plt.show()
 
-    return current_route
+    return current_route, costs[-1]
 
 def nearest_neighbor_tsp(
         nodes : np.array,
