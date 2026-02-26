@@ -215,6 +215,7 @@ def plot_tsp_route(nodes : np.array,
 def simmulated_annealing_tsp(
         nodes : np.array, 
         traffic_factor : callable,
+        pre_determined_distance_matrix : np.array = None,
         traffic_polygon : np.array = None,
         traffic_start_time : float = 0,
         temperatures : list = [0.1, 0.05, 0.01, 0.001], 
@@ -228,6 +229,9 @@ def simmulated_annealing_tsp(
     
     :param nodes: array of coordinates of the N nodes
     :type nodes: np.ndarray (N, d), N: number of nodes, d: dimension
+
+    :param pre_determined_distance_matrix: pre-determined distance/cost matrix between the nodes (optional, if not given, it will be calculated using the metric function)
+    :type pre_determined_distance_matrix: np.ndarray (N, N)
 
     :param traffic_polygon: array of coordinates of the vertices of the polygon representing the traffic area (optional)
     :type traffic_polygon: np.ndarray (M, d), M: number of vertices, d: dimension
@@ -261,7 +265,7 @@ def simmulated_annealing_tsp(
     """
 
     N = len(nodes)
-    distances = make_distance_matrix(nodes)
+    distances = make_distance_matrix(nodes) if pre_determined_distance_matrix is None else pre_determined_distance_matrix
 
     # determine which nodes are affected by traffic
     if traffic_polygon is not None:
@@ -335,6 +339,10 @@ def simmulated_annealing_tsp(
                 current_cost = calculate_route_cost(nodes, current_route, nodes_in_traffic, distances, traffic_factor, traffic_start_time)
                 costs.append(current_cost)
                 num_iter += 1
+
+                if num_iter == max_iter_per_temperature:
+                    print(f"Reached maximum number of iterations for temperature {temp}. :(")
+                
     
     if plot_cost:
         plt.figure(figsize=(3.4,5))
@@ -387,7 +395,5 @@ def nearest_neighbor_tsp(
         # append next node to route and mark as visited
         route = np.append(route, next_node)
         unvisited_nodes = np.setdiff1d(unvisited_nodes, [next_node]) # gives the difference of the two given arrays
-    
+
     return route
-
-
