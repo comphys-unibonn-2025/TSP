@@ -379,7 +379,7 @@ def nearest_neighbor_tsp(
 
         for k, unvisited_node in zip(range(1, len(unvisited_nodes)), unvisited_nodes[1:]):
 
-            distance = distances[route[-1]][unvisited_nodes[0]]
+            distance = distances[route[-1]][unvisited_node]
             if distance < minimal_distance:
                 minimal_distance = distance
                 next_node = k
