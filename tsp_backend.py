@@ -385,12 +385,12 @@ def nearest_neighbor_tsp(
         minimal_distance = distances[route[-1]][unvisited_nodes[0]]
         next_node = unvisited_nodes[0]
 
-        for k, unvisited_node in zip(range(1, len(unvisited_nodes)), unvisited_nodes[1:]):
+        for unvisited_node in unvisited_nodes[1:]:
 
             distance = distances[route[-1]][unvisited_node]
             if distance < minimal_distance:
                 minimal_distance = distance
-                next_node = k
+                next_node = unvisited_node
         
         # append next node to route and mark as visited
         route = np.append(route, next_node)
