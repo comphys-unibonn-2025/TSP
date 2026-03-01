@@ -59,7 +59,7 @@ def constant_traffic_factor_func(traffic_factor : float, traffic_start_time : fl
     """
     returns traffic_factor, if current_cost >= traffic_start_time and 1  if not
     """
-    return traffic_factor if current_cost >= traffic_factor else 1.0
+    return traffic_factor if current_cost >= traffic_start_time else 1.0
 
 def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : np.array, distance_matrix : np.array, traffic_factor_func : callable, traffic_start_time : float) -> float:
     """
@@ -220,7 +220,7 @@ def simmulated_annealing_tsp(
         traffic_start_time : float = 0,
         temperatures : list = [0.1, 0.05, 0.01, 0.001], 
         start_point_index = None, 
-        rejection_threshold : list = [20, 200, 2000, 10000], 
+        rejection_threshold : list = [20, 200, 2000, 2000], 
         max_iter_per_temperature : int = 100000,
         plot_cost : bool = False,
         plot_cost_out_path : str = None) -> np.array:
