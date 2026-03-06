@@ -89,7 +89,10 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
         raise Exception('The route needs to be an array of shape (N,), where N is the number of nodes')
 
     route_shifted = np.roll(route, -1) # shift route to the left by 1, so that route_shifted[i] is the next node after route[i]
-    distance_cumsum = np.cumsum([distance_matrix[route, route_shifted]]) # cumulative distance at each step of the route
+    distance_cumsum = np.cumsum(distance_matrix[route, route_shifted]) # cumulative distance at each step of the route
+    
+    # print(distance_cumsum.dtype)
+    # print(type(distance_cumsum))
 
     traffic_area_mask = np.zeros(N, dtype=bool)
     traffic_area_mask[nodes_in_traffic] = True
@@ -121,17 +124,18 @@ def calculate_route_cost(nodes : np.array, route : np.array, nodes_in_traffic : 
 
 
 def plot_tsp_route(nodes : np.array, 
-                   route : np.array, 
+                   route : np.array = None, 
                    traffic_polygon : np.array = None, 
                    output_path : str = None, 
                    cost : float = None,
+                   figsize=(3.4, 4),
                    arrow_width = 0.006,
                    arrow_color = 'lightblue',
                    node_dot_size = 50,
                    node_color='black',
                    want_axis=True):
     """plots the TSP route defined by the order of visiting the nodes
-    
+
     :param nodes: array of coordinates of the N nodes
     :type nodes: np.ndarray (N, d), N: number of nodes, d: dimension
     
@@ -144,10 +148,12 @@ def plot_tsp_route(nodes : np.array,
     :param output_path: path to save the plot (optional)
     :type output_path: str
     """
+    if not route is None:
+        coords = nodes[route]
+    else:
+        coords = nodes
 
-    coords = nodes[route]
-
-    plt.figure(figsize=(3.4, 4))
+    plt.figure(figsize=figsize)
 
     # scatter nodes
     plt.scatter(nodes[:, 0], nodes[:, 1], color=node_color, label='Nodes',zorder = 1, s=node_dot_size)
@@ -155,38 +161,39 @@ def plot_tsp_route(nodes : np.array,
     # starting point
     plt.scatter(coords[0, 0], coords[0, 1], color='red', label='Starting Point', zorder = 2, s=node_dot_size)
 
-    # direction vectors
-    dx = coords[1:, 0] - coords[:-1, 0]
-    dy = coords[1:, 1] - coords[:-1, 1]
+    if not route is None:
+        # direction vectors
+        dx = coords[1:, 0] - coords[:-1, 0]
+        dy = coords[1:, 1] - coords[:-1, 1]
 
-    plt.quiver(
-        coords[:-1, 0],   # arrow start x
-        coords[:-1, 1],   # arrow start y
-        dx,               # x direction
-        dy,               # y direction
-        angles='xy',
-        scale_units='xy',
-        scale=1,
-        width=arrow_width,
-        color=arrow_color
-    )
+        plt.quiver(
+            coords[:-1, 0],   # arrow start x
+            coords[:-1, 1],   # arrow start y
+            dx,               # x direction
+            dy,               # y direction
+            angles='xy',
+            scale_units='xy',
+            scale=1,
+            width=arrow_width,
+            color=arrow_color
+        )
 
-    # optional: close the tour
-    dx_last = coords[0, 0] - coords[-1, 0]
-    dy_last = coords[0, 1] - coords[-1, 1]
+        # optional: close the tour
+        dx_last = coords[0, 0] - coords[-1, 0]
+        dy_last = coords[0, 1] - coords[-1, 1]
 
-    plt.quiver(
-        coords[-1, 0],
-        coords[-1, 1],
-        dx_last,
-        dy_last,
-        angles='xy',
-        scale_units='xy',
-        scale=1,
-        width=arrow_width,
-        color=arrow_color,
-        label='TSP Route'
-    )
+        plt.quiver(
+            coords[-1, 0],
+            coords[-1, 1],
+            dx_last,
+            dy_last,
+            angles='xy',
+            scale_units='xy',
+            scale=1,
+            width=arrow_width,
+            color=arrow_color,
+            label='TSP Route'
+        )
 
     if traffic_polygon is not None:
         traffic_patch = plt.Polygon(traffic_polygon, color='red', alpha=0.3, label='Traffic Area')
@@ -349,12 +356,12 @@ def simmulated_annealing_tsp(
         plt.title(f"TSP cost evolution, \nfinal cost: {costs[-1]:.2f}")
         for (i, temp_change_points) in enumerate(temp_change_points):
             plt.plot([temp_change_points, temp_change_points], [min(costs) - 0.5, max(costs)], alpha = 0.4, color='grey') #, label=rf'{temperature[i]} $$\unit{{\kelvin}}$$')
-        plt.plot(costs, color='black', label='TSP Length')
+        plt.plot(costs, color='black', label='TSP Cost')
         # plt.xlim(0.99*len(length_arr), len(length_arr))
         # plt.ylim(6, 13)
         #plt.xscale("log")
         plt.xlabel('Iteration')
-        plt.ylabel('TSP Length')
+        plt.ylabel('TSP Cost')
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
         plt.tight_layout()
