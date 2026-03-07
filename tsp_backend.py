@@ -215,7 +215,7 @@ def plot_tsp_route(nodes : np.array,
     plt.tight_layout()
 
     if output_path is not None:
-        plt.savefig(output_path, bbox_inches='tight')
+        plt.savefig(output_path, bbox_inches='tight',transparent=True)
 
     plt.show()
 
